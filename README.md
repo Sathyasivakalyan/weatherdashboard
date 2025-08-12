@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-# animated-octo-fishstick
 Weather Forecast App with live data and 5-day forecast
 =======
 # Getting Started with Create React App
