@@ -1,78 +1,97 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Weather from './Weather';
-import Forecast from './Forecast';
-import SearchBar from './SearchBar';
-import Alerts from './Alerts';
-import LoadingSpinner from './LoadingSpinner';
-import './App.css';
-
-// Only Default Video
-import defaultVideo from './assets/cloudy.mp4';
+import React, { useState, useEffect, useCallback } from "react";
+import Weather from "./Weather";
+import Forecast from "./Forecast";
+import SearchBar from "./SearchBar";
+import { WEATHER_API_KEY, DEFAULT_CITY } from "./config";
+import "./App.css";
+import defaultVideo from "./assets/cloudy.mp4";
+import WeatherAlert from "./WeatherAlert";
 
 const App = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [alerts, setAlerts] = useState([]);
 
-  const API_KEY = process.env.REACT_APP_WEATHER_API_KEY || 'YOUR_API_KEY_HERE';
+  // Fetch weather by city name
+  const fetchWeatherData = useCallback(
+    async (city) => {
+      if (!city.trim()) return setError("Please enter a city name");
+      setLoading(true);
+      setError("");
+      setAlerts([]);
 
-  const fetchWeatherData = useCallback(async (city) => {
-    if (!city.trim()) return setError('Please enter a city name');
-    setLoading(true);
-    setError('');
-    setAlerts([]);
+      try {
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+            city
+          )}&appid=${WEATHER_API_KEY}&units=metric`
+        );
 
-    try {
-      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`);
-      if (!res.ok) throw new Error('City not found');
-      const weather = await res.json();
-      setWeatherData(weather);
+        if (res.status === 401) throw new Error("Invalid API Key");
+        if (!res.ok) throw new Error("City not found");
 
-      const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`);
-      if (!forecastRes.ok) throw new Error('Unable to fetch forecast');
-      const forecast = await forecastRes.json();
-      setForecastData(forecast);
+        const weather = await res.json();
+        setWeatherData(weather);
 
-      checkWeatherAlerts(weather);
+        const forecastRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(
+            city
+          )}&appid=${WEATHER_API_KEY}&units=metric`
+        );
+        if (!forecastRes.ok) throw new Error("Unable to fetch forecast");
+        const forecast = await forecastRes.json();
+        setForecastData(forecast);
 
-    } catch (err) {
-      setError(err.message);
-      setWeatherData(null);
-      setForecastData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [API_KEY]);
+        checkWeatherAlerts(weather);
+      } catch (err) {
+        setError(err.message);
+        setWeatherData(null);
+        setForecastData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
-  const fetchWeatherByCoords = useCallback(async (lat, lon) => {
-    setLoading(true);
-    setError('');
-    setAlerts([]);
+  // Fetch weather by coordinates
+  const fetchWeatherByCoords = useCallback(
+    async (lat, lon) => {
+      setLoading(true);
+      setError("");
+      setAlerts([]);
 
-    try {
-      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
-      if (!res.ok) throw new Error('Unable to fetch weather');
-      const weather = await res.json();
-      setWeatherData(weather);
+      try {
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`
+        );
+        if (res.status === 401) throw new Error("Invalid API Key");
+        if (!res.ok) throw new Error("Unable to fetch weather");
+        const weather = await res.json();
+        setWeatherData(weather);
 
-      const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
-      if (!forecastRes.ok) throw new Error('Unable to fetch forecast');
-      const forecast = await forecastRes.json();
-      setForecastData(forecast);
+        const forecastRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`
+        );
+        if (!forecastRes.ok) throw new Error("Unable to fetch forecast");
+        const forecast = await forecastRes.json();
+        setForecastData(forecast);
 
-      checkWeatherAlerts(weather);
+        checkWeatherAlerts(weather);
+      } catch (err) {
+        setError(err.message);
+        setWeatherData(null);
+        setForecastData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
-    } catch (err) {
-      setError(err.message);
-      setWeatherData(null);
-      setForecastData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [API_KEY]);
-
+  // Weather alerts
   const checkWeatherAlerts = (weather) => {
     const temp = weather.main?.temp;
     const windSpeed = weather.wind?.speed;
@@ -80,24 +99,31 @@ const App = () => {
     const humidity = weather.main?.humidity;
 
     const newAlerts = [];
-    if (temp > 35) newAlerts.push({ type: 'warning', message: '🌡️ High temperature alert!' });
-    if (windSpeed > 15) newAlerts.push({ type: 'warning', message: '💨 Strong wind warning!' });
-    if (main === 'Rain' || main === 'Drizzle') newAlerts.push({ type: 'info', message: '☔ Rain expected' });
-    if (main === 'Thunderstorm') newAlerts.push({ type: 'warning', message: '⛈️ Thunderstorm alert' });
-    if (main === 'Snow') newAlerts.push({ type: 'info', message: '❄️ Snow conditions' });
-    if (humidity > 80) newAlerts.push({ type: 'info', message: '💧 High humidity detected' });
+    if (temp > 35)
+      newAlerts.push({ type: "Severe Weather Alert", message: "🌡️ High temperature!" });
+    if (windSpeed > 15)
+      newAlerts.push({ type: "Weather Alert", message: "💨 Strong wind warning!" });
+    if (main === "Rain" || main === "Drizzle")
+      newAlerts.push({ type: "Weather Alert", message: "☔ Rain expected" });
+    if (main === "Thunderstorm")
+      newAlerts.push({ type: "Severe Weather Alert", message: "⛈️ Thunderstorm alert" });
+    if (main === "Snow")
+      newAlerts.push({ type: "Snow Alert", message: "❄️ Snow conditions" });
+    if (humidity > 80)
+      newAlerts.push({ type: "Weather Alert", message: "💧 High humidity detected" });
 
     setAlerts(newAlerts);
   };
 
+  // Use geolocation on load
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude),
-        () => fetchWeatherData('Bangalore')
+        () => fetchWeatherData(DEFAULT_CITY)
       );
     } else {
-      fetchWeatherData('Bangalore');
+      fetchWeatherData(DEFAULT_CITY);
     }
   }, [fetchWeatherData, fetchWeatherByCoords]);
 
@@ -113,11 +139,11 @@ const App = () => {
           <SearchBar onSearch={fetchWeatherData} loading={loading} />
         </header>
 
-        <Alerts alerts={alerts} />
+        {alerts.map((alert, i) => (
+          <WeatherAlert key={i} type={alert.type} message={alert.message} />
+        ))}
 
-        {error && <div className="error-message">{error}</div>}
-        {loading && <LoadingSpinner />}
-
+       
         <div className="weather-content">
           {weatherData && <Weather weatherData={weatherData} />}
           {forecastData && <Forecast forecastData={forecastData} />}
@@ -125,19 +151,23 @@ const App = () => {
 
         {!weatherData && !loading && !error && (
           <div className="welcome-message">
-            <h2 style={{
-              color: '#ffd700',
-              textAlign: 'center',
-              fontSize: '150%',
-              textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-            }}>
+            <h2
+              style={{
+                color: "#ffd700",
+                textAlign: "center",
+                fontSize: "150%",
+                textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              }}
+            >
               🌍 Welcome to Weather Forecast
             </h2>
-            <p style={{
-              color: '#4B5563',
-              textAlign: 'center',
-              fontSize: '110%'
-            }}>
+            <p
+              style={{
+                color: "#4B5563",
+                textAlign: "center",
+                fontSize: "110%",
+              }}
+            >
               Enter a city to get current weather and forecast.
             </p>
           </div>

@@ -16,9 +16,9 @@ const Weather = ({ weatherData }) => {
   } = weatherData;
 
   const currentWeather = weather?.[0];
-  const temperature = Math.round(main.temp);
-  const feelsLike = Math.round(main.feels_like);
-  const country = sys?.country;
+  const temperature = Math.round(main?.temp ?? 0);
+  const feelsLike = Math.round(main?.feels_like ?? 0);
+  const country = sys?.country ?? "";
 
   const currentTime = new Date(dt * 1000).toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -66,9 +66,9 @@ const Weather = ({ weatherData }) => {
       <WeatherDetails
         temperature={main}
         wind={wind}
-        visibility={visibility}
-        humidity={main.humidity}
-        pressure={main.pressure}
+        visibility={visibility ?? 0}
+        humidity={main?.humidity ?? 0}
+        pressure={main?.pressure ?? 0}
       />
     </div>
   );

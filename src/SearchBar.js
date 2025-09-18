@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { WEATHER_API_KEY } from "./config"; // import API key safely
 
 const SearchBar = ({ onSearch, loading }) => {
-  const [city, setCity] = useState('');
+  const [city, setCity] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-
-  const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your OpenWeatherMap API key
 
   const fetchCitySuggestions = async (query) => {
     if (query.trim().length === 0) {
@@ -15,14 +14,19 @@ const SearchBar = ({ onSearch, loading }) => {
 
     try {
       const response = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
+          query
+        )}&limit=5&appid=${WEATHER_API_KEY}`
       );
+
       if (response.ok) {
         const data = await response.json();
         setSuggestions(data);
+      } else {
+        console.error("Failed to fetch suggestions", response.status);
       }
     } catch (err) {
-      console.error('Error fetching suggestions:', err);
+      console.error("Error fetching suggestions:", err);
       setSuggestions([]);
     }
   };
@@ -44,7 +48,7 @@ const SearchBar = ({ onSearch, loading }) => {
   };
 
   return (
-    <div className="search-container" style={{ position: 'relative' }}>
+    <div className="search-container" style={{ position: "relative" }}>
       <input
         className="city-input"
         type="text"
@@ -63,12 +67,8 @@ const SearchBar = ({ onSearch, loading }) => {
           }
         }}
       />
-      <button
-        className="search-btn"
-        onClick={handleSearch}
-        disabled={loading}
-      >
-        {loading ? 'Loading...' : 'Search'}
+      <button className="search-btn" onClick={handleSearch} disabled={loading}>
+        {loading ? "Loading..." : "Search"}
       </button>
 
       {showSuggestions && suggestions.length > 0 && (
